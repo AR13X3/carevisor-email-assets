@@ -7,7 +7,7 @@ Image assets for CareVisor email newsletters, served over the jsDelivr CDN.
 Files in `images/` are available at:
 
 ```
-https://cdn.jsdelivr.net/gh/AR13X3/carevisor-email-assets@v2/images/<filename>
+https://cdn.jsdelivr.net/gh/AR13X3/carevisor-email-assets@v3/images/<filename>
 ```
 
 Current assets:
@@ -16,6 +16,7 @@ Current assets:
 |------|-----------|---------|
 | `carevisor-original-logo.png` | 96x96 | Header logo mark (displayed at 48px) |
 | `carevisor-sydney-event.jpg` | 1200x900 | Able Meet Sydney Inner West event photo |
+| `frances.jpg` | 1024x1024 | Frances portrait |
 
 ## Why jsDelivr, and why a version tag
 
