@@ -150,13 +150,30 @@ function human(bytes) {
   return (bytes / 1048576).toFixed(1) + ' MB';
 }
 
+// The API always answers with JSON, but a misconfigured deployment can return an
+// empty body or an HTML error page. Parsing that blindly produces an unreadable
+// "Unexpected end of JSON input", so say what actually happened instead.
+async function readJson(res) {
+  const text = await res.text();
+  if (!text.trim()) {
+    throw new Error(
+      `The server returned nothing (HTTP ${res.status}). The API may not be deployed yet.`
+    );
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`Unexpected response from the server (HTTP ${res.status}).`);
+  }
+}
+
 async function load() {
   statusEl.textContent = 'Loading…';
   statusEl.className = 'msg';
   grid.innerHTML = '';
   try {
     const res = await fetch('/api/list');
-    const data = await res.json();
+    const data = await readJson(res);
     if (!res.ok) throw new Error(data.error || 'Could not load the image list.');
     render(data.files || []);
   } catch (err) {
@@ -240,7 +257,7 @@ async function upload(files) {
       const fd = new FormData();
       fd.append('file', file);
       const res = await fetch('/api/upload', { method: 'POST', body: fd });
-      const data = await res.json();
+      const data = await readJson(res);
       if (!res.ok) throw new Error(data.error || 'Upload failed.');
       row.className = 'row ok';
       row.querySelector('.st').textContent = 'Added as ' + data.name;

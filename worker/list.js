@@ -1,12 +1,12 @@
-import { json, config, gh, cdnUrl, IMAGE_RE, IMAGE_DIR } from "../_shared.js";
+import { json, config, gh, cdnUrl, IMAGE_RE, IMAGE_DIR } from "./shared.js";
 
-// Lists what is currently in images/ on the default branch, along with the head
-// commit SHA that the CDN URLs are pinned to.
+// Lists what is currently in images/ on the default branch, plus the head commit
+// SHA that the CDN URLs are pinned to.
 //
 // This proxies GitHub with the server-side token rather than letting the browser
 // call the API directly: unauthenticated GitHub requests are capped at 60/hour
 // per IP, which a shared office connection would burn through quickly.
-export async function onRequestGet({ env }) {
+export async function handleList(env) {
   let cfg;
   try {
     cfg = config(env);
@@ -18,7 +18,7 @@ export async function onRequestGet({ env }) {
 
   const headRes = await fetch(`https://api.github.com/repos/${repo}/commits/${branch}`, { headers });
   if (!headRes.ok) {
-    return json({ error: `Could not read ${repo} (${headRes.status})` }, 502);
+    return json({ error: describeGitHubError(headRes.status, repo) }, 502);
   }
   const sha = (await headRes.json()).sha;
 
@@ -26,9 +26,9 @@ export async function onRequestGet({ env }) {
     `https://api.github.com/repos/${repo}/contents/${IMAGE_DIR}?ref=${branch}`,
     { headers }
   );
-  if (listRes.status === 404) return json({ sha, files: [] });
+  if (listRes.status === 404) return json({ sha, repo, files: [] });
   if (!listRes.ok) {
-    return json({ error: `Could not list images (${listRes.status})` }, 502);
+    return json({ error: describeGitHubError(listRes.status, repo) }, 502);
   }
 
   const files = (await listRes.json())
@@ -37,4 +37,13 @@ export async function onRequestGet({ env }) {
     .sort((a, b) => a.name.localeCompare(b.name));
 
   return json({ sha, repo, files });
+}
+
+// The raw status codes are useless to whoever is looking at the page, and the
+// two likely causes here have very different fixes.
+function describeGitHubError(status, repo) {
+  if (status === 401) return "The GitHub token is invalid or expired. It needs replacing.";
+  if (status === 403) return "The GitHub token lacks access to this repository, or the rate limit was hit.";
+  if (status === 404) return `Repository ${repo} was not found, or the token cannot see it.`;
+  return `GitHub returned ${status}.`;
 }

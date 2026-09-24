@@ -1,14 +1,14 @@
 import {
   json, config, gh, cdnUrl, safeName, toBase64,
   MAX_BYTES, IMAGE_RE, IMAGE_DIR,
-} from "../_shared.js";
+} from "./shared.js";
 
 // Commits an uploaded image to the repo and returns its CDN URL.
 //
-// The team never authenticates to GitHub: Cloudflare Access gates the page, and
-// this Function holds the only token. Access injects the verified email header
-// below, which cannot be set by an outside caller while Access is enforced.
-export async function onRequestPost({ request, env }) {
+// The team never authenticates to GitHub: Cloudflare Access gates the site, and
+// this Worker holds the only token. Access injects the verified email header
+// below, which an outside caller cannot set while Access is enforced.
+export async function handleUpload(request, env) {
   const email = request.headers.get("Cf-Access-Authenticated-User-Email");
   if (!email && env.REQUIRE_ACCESS !== "false") {
     return json({ error: "Not signed in. Reload the page and sign in again." }, 403);
@@ -57,16 +57,21 @@ export async function onRequestPost({ request, env }) {
 
   const putRes = await fetch(
     `https://api.github.com/repos/${repo}/contents/${IMAGE_DIR}/${finalName}`,
-    { method: "PUT", headers: { ...headers, "content-type": "application/json" }, body: JSON.stringify(body) }
+    {
+      method: "PUT",
+      headers: { ...headers, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }
   );
 
   if (!putRes.ok) {
     const detail = await putRes.text();
-    // 409 means someone else committed between our check and our write.
-    const msg = putRes.status === 409
-      ? "Someone else uploaded at the same moment. Please try again."
-      : `GitHub rejected the upload (${putRes.status}).`;
     console.error("upload failed", putRes.status, detail);
+    let msg;
+    if (putRes.status === 409) msg = "Someone else uploaded at the same moment. Please try again.";
+    else if (putRes.status === 401) msg = "The GitHub token is invalid or expired.";
+    else if (putRes.status === 403) msg = "The GitHub token cannot write to this repository.";
+    else msg = `GitHub rejected the upload (${putRes.status}).`;
     return json({ error: msg }, 502);
   }
 
@@ -76,7 +81,6 @@ export async function onRequestPost({ request, env }) {
 
   return json({
     name: finalName,
-    renamed: finalName !== (file.name || ""),
     size: file.size,
     url: cdnUrl(repo, sha, finalName),
     sha,

@@ -1,0 +1,16 @@
+{
+  "name": "carevisor-email-assets",
+  "main": "./worker/index.js",
+  "compatibility_date": "2026-09-24",
+  "assets": {
+    "directory": "./public/",
+    "binding": "ASSETS",
+    // Everything except the API is a static file. Listing /api/* here means the
+    // Worker only runs for those two endpoints; the page itself is served
+    // straight from the asset store without invoking the Worker at all.
+    "run_worker_first": ["/api/*"]
+  },
+  "observability": {
+    "enabled": true
+  }
+}
