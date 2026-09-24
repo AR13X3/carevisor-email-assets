@@ -42,8 +42,15 @@ Cloudflare in step 2.
 Then add the token:
 
 5. Project → **Settings** → **Variables and Secrets** → **Add**
-6. Type **Secret**, name `GITHUB_TOKEN`, value = the token from step 1
-7. **Deployments** → retry the latest deployment so it picks the secret up
+6. Type **Secret** — not Text, which stays readable in the dashboard. Name it
+   `GITHUB_TOKEN`, value = the token from step 1. Apply it to **Production**
+   (and Preview as well, if you will use preview URLs).
+7. **Deployments** → **Retry deployment** on the most recent one.
+
+Step 7 is not optional. Pages binds secrets into a deployment when it builds,
+rather than reading them per request, so a secret added after the last build
+stays invisible to the running site until something redeploys. The symptom is
+`GITHUB_TOKEN secret is not set` even though the dashboard clearly shows it.
 
 Optional variables, if you ever move things:
 
