@@ -33,26 +33,35 @@ Do not paste it into a file, a commit, or a chat window.
 
 ## 2. Add it to the Worker
 
-Cloudflare dashboard → **Workers & Pages** → `carevisor-email-assets` →
-**Settings** → **Bindings** → **Add** → **Secret**
+The reliable way, run from the repo root:
 
-> **Use the Bindings section, not Builds.** The Settings page has *two* cards
-> called "Variables and secrets" and they look identical. The one under
-> **Builds** holds build-time variables, which are visible only to the build
-> process and never to the running Worker — put the token there and the page
-> reports `GITHUB_TOKEN secret is not set` while the dashboard plainly shows the
-> secret. Runtime secrets, the kind this Worker reads, belong under
-> **Bindings**.
+```sh
+npx wrangler secret put GITHUB_TOKEN
+```
 
-| Field | Value |
-|---|---|
-| Type | **Secret** (not Text — Text stays readable in the dashboard) |
-| Name | `GITHUB_TOKEN` |
-| Value | the token from step 1 |
+It reads the Worker name from `wrangler.jsonc`, prompts for the value, and sets
+a per-Worker runtime secret. Run `npx wrangler login` first if prompted.
 
-Save. Saving a secret rolls out a new version of the Worker, so it takes effect
-on its own. If the page still reports the token missing, go to **Deployments**
-and redeploy the latest.
+### Or via the dashboard, carefully
+
+**Settings** → the **Variables and Secrets** card → **Add** → type **Secret**,
+name `GITHUB_TOKEN`, paste the value → **Deploy**.
+
+> The Settings page carries more than one card named "Variables and Secrets",
+> and they are indistinguishable at a glance:
+>
+> - the one inside the **Builds** section is build-time only. A token placed
+>   there is visible to the build process and never to the running Worker, so
+>   the page reports `GITHUB_TOKEN secret is not set` while the dashboard
+>   plainly shows the secret sitting there.
+> - **Bindings → Add** does not offer a plain secret at all. Its closest entry,
+>   **Secrets Store**, is account-level storage read as `await env.X.get()`,
+>   which is not what this Worker expects.
+>
+> The card you want is the standalone one on the Settings page, outside both.
+
+Saving rolls out a new version of the Worker. If the page still reports the
+token missing, go to **Deployments** and redeploy the latest.
 
 Optional variables, if things ever move:
 
