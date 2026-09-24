@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CareVisor Image Library</title>
+<style>
+  :root {
+    --bg: #f2f2f2;
+    --panel: #ffffff;
+    --ink: #0d0f13;
+    --muted: #5c626c;
+    --accent: #4d6599;
+    --accent-soft: #dfe4fa;
+    --line: #dcdee3;
+    --ok: #2e7d4f;
+    --bad: #b3261e;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 32px 20px 64px; }
+
+  header { margin-bottom: 26px; }
+  h1 { font-size: 26px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -0.4px; }
+  h1 span { color: var(--accent); }
+  .sub { color: var(--muted); font-size: 14px; margin: 0; }
+
+  /* ---- upload ---- */
+  #drop {
+    background: var(--panel);
+    border: 2px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 30px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  #drop:hover, #drop.over { border-color: var(--accent); background: #fbfcff; }
+  #drop.over { border-style: solid; }
+  #drop h2 { margin: 0 0 4px; font-size: 17px; }
+  #drop p { margin: 0; color: var(--muted); font-size: 13px; }
+  #picker { display: none; }
+
+  #queue { margin-top: 14px; display: grid; gap: 8px; }
+  .row {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 13px; font-size: 13px; display: flex; gap: 10px; align-items: center;
+  }
+  .row .nm { font-weight: 600; word-break: break-all; }
+  .row .st { margin-left: auto; white-space: nowrap; color: var(--muted); }
+  .row.ok .st { color: var(--ok); }
+  .row.bad .st { color: var(--bad); }
+  .row.bad { border-color: #e9c4c1; background: #fdf6f5; }
+
+  /* ---- gallery ---- */
+  .bar { display: flex; align-items: baseline; gap: 10px; margin: 34px 0 14px; }
+  .bar h2 { font-size: 17px; margin: 0; }
+  .bar .count { color: var(--muted); font-size: 13px; }
+  .bar button {
+    margin-left: auto; background: none; border: 1px solid var(--line); color: var(--muted);
+    border-radius: 8px; padding: 5px 11px; font-size: 13px; cursor: pointer;
+  }
+  .bar button:hover { border-color: var(--accent); color: var(--accent); }
+
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column;
+  }
+  .thumb {
+    height: 145px; background: #f7f7f7 repeating-conic-gradient(#efefef 0 25%, transparent 0 50%) 0 0 / 18px 18px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .thumb img { max-width: 100%; max-height: 145px; display: block; }
+  .meta { padding: 11px 13px 13px; display: flex; flex-direction: column; gap: 9px; flex: 1; }
+  .fname { font-size: 13px; font-weight: 600; word-break: break-all; line-height: 1.35; }
+  .fsize { font-size: 12px; color: var(--muted); margin-top: -5px; }
+  .copy {
+    margin-top: auto; background: var(--accent-soft); color: #33406a; border: 0;
+    border-radius: 9px; padding: 9px; font-size: 13px; font-weight: 700; cursor: pointer;
+    font-family: inherit;
+  }
+  .copy:hover { background: #d3daf7; }
+  .copy.done { background: #d8efdf; color: #1f5c39; }
+
+  .note {
+    margin-top: 30px; padding: 14px 16px; background: #eef0f6; border-radius: 10px;
+    font-size: 13px; color: #414652; line-height: 1.6;
+  }
+  .note code { background: #fff; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  .msg { padding: 26px; text-align: center; color: var(--muted); font-size: 14px; }
+  .msg.err { color: var(--bad); }
+
+  @media (max-width: 460px) {
+    .wrap { padding: 22px 14px 48px; }
+    #grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Care<span>Visor</span> Image Library</h1>
+    <p class="sub">Upload an image, then copy its link straight into the newsletter.</p>
+  </header>
+
+  <div id="drop" role="button" tabindex="0" aria-label="Upload images">
+    <h2>Drop images here</h2>
+    <p>or click to choose &middot; PNG, JPG, GIF, WEBP &middot; up to 10MB</p>
+  </div>
+  <input type="file" id="picker" multiple accept="image/*">
+  <div id="queue"></div>
+
+  <div class="bar">
+    <h2>Images</h2>
+    <span class="count" id="count"></span>
+    <button id="refresh" type="button">Refresh</button>
+  </div>
+  <div id="grid"></div>
+  <div class="msg" id="status">Loading…</div>
+
+  <div class="note">
+    <strong>Why the links look long.</strong> Each link is pinned to the exact
+    version of the image at the moment it was uploaded, using the
+    <code>@</code> part of the URL. That is deliberate — it means a link you put
+    in an email today will keep showing that same image forever, even if the file
+    is later replaced. Copy the link as-is; don't shorten or edit it.
+  </div>
+
+</div>
+
+<script>
+const grid = document.getElementById('grid');
+const statusEl = document.getElementById('status');
+const countEl = document.getElementById('count');
+const queue = document.getElementById('queue');
+const drop = document.getElementById('drop');
+const picker = document.getElementById('picker');
+
+function human(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+async function load() {
+  statusEl.textContent = 'Loading…';
+  statusEl.className = 'msg';
+  grid.innerHTML = '';
+  try {
+    const res = await fetch('/api/list');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not load the image list.');
+    render(data.files || []);
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.className = 'msg err';
+    countEl.textContent = '';
+  }
+}
+
+function render(files) {
+  grid.innerHTML = '';
+  countEl.textContent = files.length ? files.length + ' file' + (files.length === 1 ? '' : 's') : '';
+  if (!files.length) {
+    statusEl.textContent = 'No images yet. Upload one above to get started.';
+    statusEl.className = 'msg';
+    return;
+  }
+  statusEl.textContent = '';
+  for (const f of files) {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const thumb = document.createElement('div');
+    thumb.className = 'thumb';
+    const img = document.createElement('img');
+    img.src = f.url;
+    img.alt = f.name;
+    img.loading = 'lazy';
+    thumb.appendChild(img);
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const nm = document.createElement('div');
+    nm.className = 'fname';
+    nm.textContent = f.name;
+    const sz = document.createElement('div');
+    sz.className = 'fsize';
+    sz.textContent = human(f.size);
+    const btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy link';
+    btn.addEventListener('click', () => copy(btn, f.url));
+
+    meta.append(nm, sz, btn);
+    card.append(thumb, meta);
+    grid.appendChild(card);
+  }
+}
+
+async function copy(btn, text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // Clipboard API needs a secure context and can be blocked; fall back.
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+  btn.textContent = 'Copied';
+  btn.classList.add('done');
+  setTimeout(() => { btn.textContent = 'Copy link'; btn.classList.remove('done'); }, 1600);
+}
+
+async function upload(files) {
+  const list = [...files].filter(f => f.type.startsWith('image/'));
+  if (!list.length) return;
+  for (const file of list) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = '<span class="nm"></span><span class="st">Uploading…</span>';
+    row.querySelector('.nm').textContent = file.name;
+    queue.appendChild(row);
+
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed.');
+      row.className = 'row ok';
+      row.querySelector('.st').textContent = 'Added as ' + data.name;
+    } catch (err) {
+      row.className = 'row bad';
+      row.querySelector('.st').textContent = err.message;
+    }
+  }
+  load();
+}
+
+drop.addEventListener('click', () => picker.click());
+drop.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); picker.click(); }
+});
+picker.addEventListener('change', () => { upload(picker.files); picker.value = ''; });
+
+['dragenter', 'dragover'].forEach(ev =>
+  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev =>
+  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => upload(e.dataTransfer.files));
+// Stop a stray drop elsewhere on the page from navigating away from the app.
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => e.preventDefault());
+
+document.getElementById('refresh').addEventListener('click', load);
+load();
+</script>
+</body>
+</html>
