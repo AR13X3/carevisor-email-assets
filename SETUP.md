@@ -34,7 +34,15 @@ Do not paste it into a file, a commit, or a chat window.
 ## 2. Add it to the Worker
 
 Cloudflare dashboard → **Workers & Pages** → `carevisor-email-assets` →
-**Settings** → **Variables and Secrets** → **Add**
+**Settings** → **Bindings** → **Add** → **Secret**
+
+> **Use the Bindings section, not Builds.** The Settings page has *two* cards
+> called "Variables and secrets" and they look identical. The one under
+> **Builds** holds build-time variables, which are visible only to the build
+> process and never to the running Worker — put the token there and the page
+> reports `GITHUB_TOKEN secret is not set` while the dashboard plainly shows the
+> secret. Runtime secrets, the kind this Worker reads, belong under
+> **Bindings**.
 
 | Field | Value |
 |---|---|
