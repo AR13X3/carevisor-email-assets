@@ -17,6 +17,7 @@ Current assets:
 | `carevisor-original-logo.png` | 96x96 | Header logo mark (displayed at 48px) |
 | `carevisor-sydney-event.jpg` | 1200x900 | Able Meet Sydney Inner West event photo |
 | `frances.jpg` | 1024x1024 | Frances portrait |
+| `carevisor-event-stand.jpg` | 1200x1600 | CareVisor exhibition stand |
 
 ## Why jsDelivr, and why a version tag
 
